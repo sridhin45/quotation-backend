@@ -21,6 +21,17 @@ UPLOAD_DIR = "backend/uploads/items"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ======================================================
+# OPTIONS (PRE-FLIGHT)  ⭐ VERY IMPORTANT
+# ======================================================
+@router.options("/")
+def quotation_options():
+    return {}
+
+@router.options("/{quotation_id}")
+def quotation_id_options(quotation_id: int):
+    return {}
+
+# ======================================================
 # CREATE QUOTATION (JSON + IMAGES)
 # ======================================================
 @router.post("/", response_model=schemas.QuotationResponse)
@@ -39,15 +50,18 @@ def create_quotation(
     # ---------- Save images ----------
     image_map: dict[str, str] = {}
 
-    for index, image in enumerate(images):
-        ext = image.filename.split(".")[-1]
-        filename = f"{uuid.uuid4()}.{ext}"
+    try:
+        for index, image in enumerate(images):
+            ext = image.filename.split(".")[-1]
+            filename = f"{uuid.uuid4()}.{ext}"
 
-        file_path = os.path.join(UPLOAD_DIR, filename)
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(image.file, f)
+            file_path = os.path.join(UPLOAD_DIR, filename)
+            with open(file_path, "wb") as f:
+                shutil.copyfileobj(image.file, f)
 
-        image_map[str(index)] = filename  # ✅ ONLY filename
+            image_map[str(index)] = filename  # store ONLY filename
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image save failed: {e}")
 
     return crud.create_quotation(
         db=db,
@@ -73,15 +87,18 @@ def edit_quotation(
 
     image_map: dict[str, str] = {}
 
-    for index, image in enumerate(images):
-        ext = image.filename.split(".")[-1]
-        filename = f"{uuid.uuid4()}.{ext}"
+    try:
+        for index, image in enumerate(images):
+            ext = image.filename.split(".")[-1]
+            filename = f"{uuid.uuid4()}.{ext}"
 
-        file_path = os.path.join(UPLOAD_DIR, filename)
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(image.file, f)
+            file_path = os.path.join(UPLOAD_DIR, filename)
+            with open(file_path, "wb") as f:
+                shutil.copyfileobj(image.file, f)
 
-        image_map[str(index)] = filename
+            image_map[str(index)] = filename
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Image save failed: {e}")
 
     quotation = crud.update_quotation(
         db=db,
