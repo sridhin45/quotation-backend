@@ -1,7 +1,15 @@
-from fastapi import APIRouter, Depends, UploadFile, File
+from fastapi import (
+    APIRouter,
+    Depends,
+    UploadFile,
+    File,
+    Form,
+    HTTPException
+)
 from sqlalchemy.orm import Session
 import os
 import shutil
+import uuid
 
 from backend.database import get_db
 from backend import crud, schemas
@@ -11,36 +19,39 @@ router = APIRouter(
     tags=["Items"]
 )
 
+# =========================
+# UPLOAD DIRECTORY
+# =========================
 UPLOAD_DIR = "backend/uploads/items"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
-
 
 # =========================
 # CREATE ITEM (WITH IMAGE)
 # =========================
 @router.post("/", response_model=schemas.Item)
 def create_item(
-    name: str,
-    unit_price: float,
+    name: str = Form(...),
+    unit_price: float = Form(...),
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db)
 ):
-    image_path = None
+    image_filename = None
 
     if image:
-        file_path = os.path.join(UPLOAD_DIR, image.filename)
+        # generate unique filename
+        ext = image.filename.split(".")[-1]
+        image_filename = f"{uuid.uuid4()}.{ext}"
+
+        file_path = os.path.join(UPLOAD_DIR, image_filename)
         with open(file_path, "wb") as buffer:
             shutil.copyfileobj(image.file, buffer)
-        image_path = file_path
 
-    # ✅ UPDATED CALL (matches new crud.create_item signature)
     return crud.create_item(
         db=db,
         name=name,
         unit_price=unit_price,
-        image=image_path
+        image=image_filename
     )
-
 
 # =========================
 # GET ALL ITEMS
@@ -49,38 +60,9 @@ def create_item(
 def get_items(db: Session = Depends(get_db)):
     return crud.get_items(db)
 
-
-@router.patch("/{item_id}", response_model=schemas.Item)
-def edit_item(
-    item_id: int,
-    name: str | None = None,
-    unit_price: float | None = None,
-    image: UploadFile | None = File(None),
-    db: Session = Depends(get_db)
-):
-    image_path = None
-
-    if image:
-        file_path = os.path.join(UPLOAD_DIR, image.filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
-        image_path = file_path
-
-    item = crud.update_item(
-        db,
-        item_id,
-        schemas.ItemUpdate(name=name, unit_price=unit_price),
-        image=image_path
-    )
-
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    return item
-from fastapi import HTTPException
-
-from fastapi import HTTPException
-
+# =========================
+# GET SINGLE ITEM
+# =========================
 @router.get("/{item_id}", response_model=schemas.Item)
 def get_item(
     item_id: int,
@@ -91,9 +73,50 @@ def get_item(
         raise HTTPException(status_code=404, detail="Item not found")
     return item
 
+# =========================
+# UPDATE ITEM
+# =========================
+@router.patch("/{item_id}", response_model=schemas.Item)
+def update_item(
+    item_id: int,
+    name: str | None = Form(None),
+    unit_price: float | None = Form(None),
+    image: UploadFile | None = File(None),
+    db: Session = Depends(get_db)
+):
+    image_filename = None
 
+    if image:
+        ext = image.filename.split(".")[-1]
+        image_filename = f"{uuid.uuid4()}.{ext}"
+
+        file_path = os.path.join(UPLOAD_DIR, image_filename)
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+
+    item = crud.update_item(
+        db=db,
+        item_id=item_id,
+        item_update=schemas.ItemUpdate(
+            name=name,
+            unit_price=unit_price
+        ),
+        image=image_filename
+    )
+
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+
+    return item
+
+# =========================
+# DELETE ITEM
+# =========================
 @router.delete("/{item_id}")
-def delete_item(item_id: int, db: Session = Depends(get_db)):
+def delete_item(
+    item_id: int,
+    db: Session = Depends(get_db)
+):
     try:
         result = crud.delete_item(db, item_id)
         if not result:
