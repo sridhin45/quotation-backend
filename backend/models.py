@@ -16,7 +16,10 @@ class ItemMaster(Base):
     unit_price = Column(Float, nullable=False)
     image = Column(String, nullable=True)
 
-    quotation_items = relationship("QuotationItem", back_populates="item")
+    quotation_items = relationship(
+        "QuotationItem",
+        back_populates="item"
+    )
 
 
 # =========================
@@ -33,10 +36,12 @@ class Quotation(Base):
     tax = Column(Float, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # ✅ CRITICAL FIX
     items = relationship(
         "QuotationItem",
         back_populates="quotation",
-        cascade="all, delete"
+        cascade="all, delete-orphan",
+        passive_deletes=True
     )
 
 
@@ -47,8 +52,20 @@ class QuotationItem(Base):
     __tablename__ = "quotation_items"
 
     id = Column(Integer, primary_key=True, index=True)
-    quotation_id = Column(Integer, ForeignKey("quotations.id"))
-    item_id = Column(Integer, ForeignKey("item_master.id"))
+
+    # ✅ CRITICAL FIX
+    quotation_id = Column(
+        Integer,
+        ForeignKey("quotations.id", ondelete="CASCADE"),
+        nullable=False
+    )
+
+    item_id = Column(
+        Integer,
+        ForeignKey("item_master.id"),
+        nullable=False
+    )
+
     qty = Column(Integer, nullable=False)
     price = Column(Float, nullable=False)
     total = Column(Float, nullable=False)
