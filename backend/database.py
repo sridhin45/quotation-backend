@@ -4,12 +4,19 @@ import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
+# ✅ Fallback for local development
 if not DATABASE_URL:
-    raise RuntimeError("DATABASE_URL is not set")
+    DATABASE_URL = "sqlite:///./quotation.db"
+
+# SQLite needs special connect args
+connect_args = {}
+if DATABASE_URL.startswith("sqlite"):
+    connect_args = {"check_same_thread": False}
 
 engine = create_engine(
     DATABASE_URL,
-    pool_pre_ping=True
+    pool_pre_ping=True,
+    connect_args=connect_args
 )
 
 SessionLocal = sessionmaker(

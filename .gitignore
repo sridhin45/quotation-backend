@@ -1,4 +1,15 @@
-quotations.db
-backend/uploads/
-__pycache__/
+# Python
 venv/
+__pycache__/
+*.pyc
+
+quotation.db
+quotations.db
+*.db
+
+
+# Uploads
+backend/uploads/
+
+# Environment
+.env

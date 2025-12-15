@@ -35,16 +35,16 @@ class QuotationItemAuto(BaseModel):
     # Existing item (dropdown)
     item_id: Optional[int] = None
 
-    # New item (typed in quotation)
+    # New item (typed)
     item_name: Optional[str] = None
 
     qty: int
-
-    # Frontend AUTOFILLS these
     price: float
-    total: float
 
-    # 🔥 Used ONLY during edit
+    # ✅ OPTIONAL (backend will calculate if missing)
+    total: Optional[float] = None
+
+    # Used ONLY during edit
     replace_image: Optional[bool] = False
 
 
@@ -67,8 +67,6 @@ class QuotationUpdate(BaseModel):
     customer_phone: Optional[str] = None
     salesman_name: Optional[str] = None
     tax: Optional[float] = None
-
-    # FULL replace when provided
     items: Optional[List[QuotationItemAuto]] = None
 
 
