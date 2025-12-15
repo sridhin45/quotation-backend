@@ -38,7 +38,6 @@ def create_item(
     image_filename = None
 
     if image:
-        # generate unique filename
         ext = image.filename.split(".")[-1]
         image_filename = f"{uuid.uuid4()}.{ext}"
 
@@ -97,7 +96,7 @@ def update_item(
     item = crud.update_item(
         db=db,
         item_id=item_id,
-        item_update=schemas.ItemUpdate(
+        item_data=schemas.ItemUpdate(   # ✅ FIXED
             name=name,
             unit_price=unit_price
         ),

@@ -202,3 +202,22 @@ def delete_quotation(db: Session, quotation_id: int):
     db.delete(quotation)
     db.commit()
     return True
+# =========================
+# DELETE ITEM
+# =========================
+def delete_item(db: Session, item_id: int):
+    item = get_item_by_id(db, item_id)
+    if not item:
+        return None
+
+    # Check if item is still used in quotation items
+    used = db.query(models.QuotationItem).filter(
+        models.QuotationItem.item_id == item_id
+    ).first()
+
+    if used:
+        raise ValueError("Item used in quotation")
+
+    db.delete(item)
+    db.commit()
+    return True
