@@ -221,3 +221,29 @@ def delete_item(db: Session, item_id: int):
     db.delete(item)
     db.commit()
     return True
+
+# =========================
+# UPDATE ITEM
+# =========================
+def update_item(
+    db: Session,
+    item_id: int,
+    item_data: schemas.ItemUpdate,
+    image: str | None = None
+):
+    item = get_item_by_id(db, item_id)
+    if not item:
+        return None
+
+    if item_data.name is not None:
+        item.name = item_data.name
+
+    if item_data.unit_price is not None:
+        item.unit_price = item_data.unit_price
+
+    if image is not None:
+        item.image = image   # ✅ Cloudinary URL
+
+    db.commit()
+    db.refresh(item)
+    return item

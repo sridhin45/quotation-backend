@@ -7,12 +7,13 @@ from fastapi import (
     HTTPException
 )
 from sqlalchemy.orm import Session
-import os
-import shutil
-import uuid
 
 from backend.database import get_db
 from backend import crud, schemas
+
+import cloudinary.uploader
+from backend.cloudinary_config import cloudinary
+
 
 router = APIRouter(
     prefix="/items",
@@ -20,13 +21,7 @@ router = APIRouter(
 )
 
 # =========================
-# UPLOAD DIRECTORY
-# =========================
-UPLOAD_DIR = "backend/uploads/items"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
-
-# =========================
-# CREATE ITEM (WITH IMAGE)
+# CREATE ITEM (CLOUDINARY)
 # =========================
 @router.post("/", response_model=schemas.Item)
 def create_item(
@@ -35,21 +30,20 @@ def create_item(
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db)
 ):
-    image_filename = None
+    image_url = None
 
     if image:
-        ext = image.filename.split(".")[-1]
-        image_filename = f"{uuid.uuid4()}.{ext}"
-
-        file_path = os.path.join(UPLOAD_DIR, image_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
+        result = cloudinary.uploader.upload(
+            image.file,
+            folder="quotation_items"
+        )
+        image_url = result["secure_url"]
 
     return crud.create_item(
         db=db,
         name=name,
         unit_price=unit_price,
-        image=image_filename
+        image=image_url
     )
 
 # =========================
@@ -73,7 +67,7 @@ def get_item(
     return item
 
 # =========================
-# UPDATE ITEM
+# UPDATE ITEM (CLOUDINARY)
 # =========================
 @router.patch("/{item_id}", response_model=schemas.Item)
 def update_item(
@@ -83,24 +77,23 @@ def update_item(
     image: UploadFile | None = File(None),
     db: Session = Depends(get_db)
 ):
-    image_filename = None
+    image_url = None
 
     if image:
-        ext = image.filename.split(".")[-1]
-        image_filename = f"{uuid.uuid4()}.{ext}"
-
-        file_path = os.path.join(UPLOAD_DIR, image_filename)
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(image.file, buffer)
+        result = cloudinary.uploader.upload(
+            image.file,
+            folder="quotation_items"
+        )
+        image_url = result["secure_url"]
 
     item = crud.update_item(
         db=db,
         item_id=item_id,
-        item_data=schemas.ItemUpdate(   # ✅ FIXED
+        item_data=schemas.ItemUpdate(
             name=name,
             unit_price=unit_price
         ),
-        image=image_filename
+        image=image_url
     )
 
     if not item:
