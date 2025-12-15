@@ -42,74 +42,42 @@ def create_item(
     return item
 
 
-def update_item(
-    db: Session,
-    item_id: int,
-    item_data: schemas.ItemUpdate,
-    image: str | None = None
-):
-    item = get_item_by_id(db, item_id)
-    if not item:
-        return None
-
-    if item_data.name is not None:
-        item.name = item_data.name
-
-    if item_data.unit_price is not None:
-        item.unit_price = item_data.unit_price
-
-    if image is not None:
-        item.image = image
-
-    db.commit()
-    db.refresh(item)
-    return item
-
-
-def delete_item(db: Session, item_id: int):
-    item = get_item_by_id(db, item_id)
-    if not item:
-        return None
-
-    used = db.query(models.QuotationItem).filter(
-        models.QuotationItem.item_id == item_id
-    ).first()
-
-    if used:
-        raise ValueError("Item used in quotation")
-
-    db.delete(item)
-    db.commit()
-    return True
-
-
 # =========================
 # CREATE QUOTATION
 # =========================
 def create_quotation(
     db: Session,
-    quotation: schemas.QuotationCreate,
+    data: schemas.QuotationCreate,
     image_map: dict
 ):
     quote_no = f"Q-{int(datetime.utcnow().timestamp())}"
 
-    db_quotation = models.Quotation(
+    quotation = models.Quotation(
         quote_no=quote_no,
-        customer_name=quotation.customer_name,
-        customer_phone=quotation.customer_phone,
-        salesman_name=quotation.salesman_name,
-        tax=quotation.tax
+        customer_name=data.customer_name,
+        customer_phone=data.customer_phone,
+        salesman_name=data.salesman_name,
+        tax=data.tax
     )
-    db.add(db_quotation)
+    db.add(quotation)
     db.commit()
-    db.refresh(db_quotation)
+    db.refresh(quotation)
 
-    for index, q_item in enumerate(quotation.items):
-        image_path = image_map.get(str(index))
+    for index, q_item in enumerate(data.items):
+        image_path = image_map.get(index)  # ✅ int key
+
+        # Calculate total safely
+        item_total = (
+            q_item.total
+            if q_item.total is not None
+            else q_item.qty * q_item.price
+        )
 
         # EXISTING ITEM
         if q_item.item_id:
             item = get_item_by_id(db, q_item.item_id)
+            if not item:
+                raise ValueError(f"Item ID {q_item.item_id} not found")
 
         # NEW ITEM
         else:
@@ -123,21 +91,21 @@ def create_quotation(
                 )
 
         qi = models.QuotationItem(
-            quotation_id=db_quotation.id,
+            quotation_id=quotation.id,
             item_id=item.id,
             qty=q_item.qty,
             price=q_item.price,
-            total=q_item.total
+            total=item_total
         )
         db.add(qi)
 
     db.commit()
-    db.refresh(db_quotation)
-    return db_quotation
+    db.refresh(quotation)
+    return quotation
 
 
 # =========================
-# UPDATE QUOTATION (HEADER + ITEMS)
+# UPDATE QUOTATION
 # =========================
 def update_quotation(
     db: Session,
@@ -149,26 +117,33 @@ def update_quotation(
     if not quotation:
         return None
 
-    # 🔹 Update header fields
+    # Update header
     for field, value in data.dict(
         exclude_unset=True,
         exclude={"items"}
     ).items():
         setattr(quotation, field, value)
 
-    # 🔹 Update items (FULL REPLACE)
+    # Replace items
     if data.items is not None:
         db.query(models.QuotationItem).filter(
             models.QuotationItem.quotation_id == quotation.id
         ).delete()
 
         for index, q_item in enumerate(data.items):
-            image_path = image_map.get(str(index))
+            image_path = image_map.get(index)
+
+            item_total = (
+                q_item.total
+                if q_item.total is not None
+                else q_item.qty * q_item.price
+            )
 
             if q_item.item_id:
                 item = get_item_by_id(db, q_item.item_id)
+                if not item:
+                    raise ValueError(f"Item ID {q_item.item_id} not found")
 
-                # IMAGE REPLACEMENT
                 if q_item.replace_image and image_path:
                     item.image = image_path
                     item.unit_price = q_item.price
@@ -188,7 +163,7 @@ def update_quotation(
                 item_id=item.id,
                 qty=q_item.qty,
                 price=q_item.price,
-                total=q_item.total
+                total=item_total
             )
             db.add(qi)
 
