@@ -12,7 +12,7 @@ from backend.database import get_db
 from backend import crud, schemas
 
 import cloudinary.uploader
-import backend.cloudinary_config  # ✅ loads config
+import backend.cloudinary_config  # ✅ loads Cloudinary config
 
 router = APIRouter(
     prefix="/items",
@@ -32,11 +32,17 @@ def create_item(
     image_url = None
 
     if image:
-        result = cloudinary.uploader.upload(
-            image.file,
-            folder="quotation/items"
-        )
-        image_url = result["secure_url"]
+        try:
+            result = cloudinary.uploader.upload(
+                image.file,
+                folder="quotation/items"
+            )
+            image_url = result["secure_url"]
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Cloudinary upload failed: {e}"
+            )
 
     return crud.create_item(
         db=db,
@@ -76,11 +82,17 @@ def update_item(
     image_url = None
 
     if image:
-        result = cloudinary.uploader.upload(
-            image.file,
-            folder="quotation/items"
-        )
-        image_url = result["secure_url"]
+        try:
+            result = cloudinary.uploader.upload(
+                image.file,
+                folder="quotation/items"
+            )
+            image_url = result["secure_url"]
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Cloudinary upload failed: {e}"
+            )
 
     item = crud.update_item(
         db=db,
