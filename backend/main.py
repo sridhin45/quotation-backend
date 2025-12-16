@@ -6,10 +6,13 @@ import os
 from backend.database import Base, engine
 from backend.routers import items, quotations
 
+# =========================
+# APP INIT
+# =========================
 app = FastAPI(title="Quotation API")
 
 # =========================
-# CORS (FIXED & RELIABLE)
+# CORS (SAFE + WORKING)
 # =========================
 app.add_middleware(
     CORSMiddleware,
@@ -35,9 +38,12 @@ app.include_router(items.router)
 app.include_router(quotations.router)
 
 # =========================
-# STATIC FILES
+# STATIC FILES (IMAGES)
 # =========================
-UPLOAD_DIR = "backend/uploads"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app.mount(
@@ -46,6 +52,9 @@ app.mount(
     name="uploads"
 )
 
+# =========================
+# ROOT
+# =========================
 @app.get("/")
 def root():
     return {"message": "Quotation API running"}
