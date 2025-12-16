@@ -49,3 +49,6 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 @app.get("/")
 def root():
     return {"message": "Quotation API running"}
+@app.get("/cors-test")
+def cors_test():
+    return {"cors": "working"}
