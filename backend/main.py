@@ -6,13 +6,10 @@ import os
 from backend.database import Base, engine
 from backend.routers import items, quotations
 
-# =========================
-# APP INIT
-# =========================
 app = FastAPI(title="Quotation API")
 
 # =========================
-# CORS (SAFE + WORKING)
+# CORS (RENDER + ANGULAR SAFE)
 # =========================
 app.add_middleware(
     CORSMiddleware,
@@ -21,7 +18,7 @@ app.add_middleware(
         "http://127.0.0.1:4200",
         "https://quotation-frontend.onrender.com"
     ],
-    allow_credentials=True,
+    allow_credentials=False,   # ✅ IMPORTANT
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -38,19 +35,13 @@ app.include_router(items.router)
 app.include_router(quotations.router)
 
 # =========================
-# STATIC FILES (IMAGES)
+# STATIC FILES
 # =========================
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
 UPLOAD_DIR = os.path.join(BASE_DIR, "uploads")
-
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-app.mount(
-    "/uploads",
-    StaticFiles(directory=UPLOAD_DIR),
-    name="uploads"
-)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # =========================
 # ROOT
