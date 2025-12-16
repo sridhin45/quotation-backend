@@ -8,32 +8,19 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 import json
-import os
-import shutil
-import uuid
 from typing import List, Dict
+
+import cloudinary.uploader
+import backend.cloudinary_config  # loads config
 
 from backend.database import get_db
 from backend import crud, schemas
 
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
-UPLOAD_DIR = "backend/uploads/items"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 # ======================================================
-# OPTIONS (CORS PREFLIGHT)
-# ======================================================
-@router.options("/")
-def quotation_options():
-    return {}
-
-@router.options("/{quotation_id}")
-def quotation_id_options(quotation_id: int):
-    return {}
-
-# ======================================================
-# CREATE QUOTATION (JSON + IMAGES)
+# CREATE QUOTATION (JSON + IMAGES) — CLOUDINARY
 # ======================================================
 @router.post("/", response_model=schemas.QuotationResponse)
 def create_quotation(
@@ -41,29 +28,22 @@ def create_quotation(
     images: List[UploadFile] | None = File(None),
     db: Session = Depends(get_db)
 ):
-    # ---------- Parse JSON ----------
     try:
         payload_dict = json.loads(data)
         quotation_data = schemas.QuotationCreate(**payload_dict)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Invalid quotation data: {e}")
 
-    # ---------- Save images ----------
     image_map: Dict[int, str] = {}
 
+    # ✅ Upload images to Cloudinary
     if images:
-        try:
-            for index, image in enumerate(images):
-                ext = image.filename.split(".")[-1]
-                filename = f"{uuid.uuid4()}.{ext}"
-
-                file_path = os.path.join(UPLOAD_DIR, filename)
-                with open(file_path, "wb") as f:
-                    shutil.copyfileobj(image.file, f)
-
-                image_map[index] = filename
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Image save failed: {e}")
+        for index, image in enumerate(images):
+            result = cloudinary.uploader.upload(
+                image.file,
+                folder="quotation/items"
+            )
+            image_map[index] = result["secure_url"]   # ✅ FULL URL
 
     # ---------- Validate & compute totals ----------
     for item in quotation_data.items:
@@ -82,8 +62,9 @@ def create_quotation(
         image_map=image_map
     )
 
+
 # ======================================================
-# UPDATE QUOTATION (JSON + OPTIONAL IMAGES)
+# UPDATE QUOTATION (JSON + IMAGES) — CLOUDINARY
 # ======================================================
 @router.patch("/{quotation_id}", response_model=schemas.QuotationResponse)
 def edit_quotation(
@@ -101,20 +82,13 @@ def edit_quotation(
     image_map: Dict[int, str] = {}
 
     if images:
-        try:
-            for index, image in enumerate(images):
-                ext = image.filename.split(".")[-1]
-                filename = f"{uuid.uuid4()}.{ext}"
+        for index, image in enumerate(images):
+            result = cloudinary.uploader.upload(
+                image.file,
+                folder="quotation/items"
+            )
+            image_map[index] = result["secure_url"]   # ✅ FULL URL
 
-                file_path = os.path.join(UPLOAD_DIR, filename)
-                with open(file_path, "wb") as f:
-                    shutil.copyfileobj(image.file, f)
-
-                image_map[index] = filename
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Image save failed: {e}")
-
-    # ---------- Compute totals if missing ----------
     if payload.items:
         for item in payload.items:
             if not item.item_id and not item.item_name:
@@ -136,30 +110,4 @@ def edit_quotation(
     if not quotation:
         raise HTTPException(status_code=404, detail="Quotation not found")
 
-    return quotation
-
-# ======================================================
-# DELETE QUOTATION
-# ======================================================
-@router.delete("/{quotation_id}")
-def delete_quotation(quotation_id: int, db: Session = Depends(get_db)):
-    if not crud.delete_quotation(db, quotation_id):
-        raise HTTPException(status_code=404, detail="Quotation not found")
-    return {"message": "Quotation deleted successfully"}
-
-# ======================================================
-# GET ALL QUOTATIONS
-# ======================================================
-@router.get("/", response_model=List[schemas.QuotationResponse])
-def get_quotations(db: Session = Depends(get_db)):
-    return crud.get_quotations(db)
-
-# ======================================================
-# GET QUOTATION BY ID
-# ======================================================
-@router.get("/{quotation_id}", response_model=schemas.QuotationResponse)
-def get_quotation_by_id(quotation_id: int, db: Session = Depends(get_db)):
-    quotation = crud.get_quotation_by_id(db, quotation_id)
-    if not quotation:
-        raise HTTPException(status_code=404, detail="Quotation not found")
     return quotation
