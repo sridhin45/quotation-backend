@@ -11,13 +11,12 @@ import json
 from typing import List, Dict
 
 import cloudinary.uploader
-import backend.cloudinary_config  # loads config
+import backend.cloudinary_config
 
 from backend.database import get_db
 from backend import crud, schemas
 
 router = APIRouter(prefix="/quotations", tags=["Quotations"])
-
 
 # ======================================================
 # CREATE QUOTATION (JSON + IMAGES) — CLOUDINARY
@@ -28,57 +27,35 @@ def create_quotation(
     images: List[UploadFile] | None = File(None),
     db: Session = Depends(get_db)
 ):
-    try:
-        payload_dict = json.loads(data)
-        quotation_data = schemas.QuotationCreate(**payload_dict)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid quotation data: {e}")
-
+    payload = schemas.QuotationCreate(**json.loads(data))
     image_map: Dict[int, str] = {}
 
-    # ✅ Upload images to Cloudinary
     if images:
         for index, image in enumerate(images):
             result = cloudinary.uploader.upload(
                 image.file,
                 folder="quotation/items"
             )
-            image_map[index] = result["secure_url"]   # ✅ FULL URL
+            image_map[index] = result["secure_url"]
 
-    # ---------- Validate & compute totals ----------
-    for item in quotation_data.items:
-        if not item.item_id and not item.item_name:
-            raise HTTPException(
-                status_code=400,
-                detail="Each item must have either item_id or item_name"
-            )
-
+    for item in payload.items:
         if item.total is None:
             item.total = item.qty * item.price
 
-    return crud.create_quotation(
-        db=db,
-        data=quotation_data,
-        image_map=image_map
-    )
+    return crud.create_quotation(db, payload, image_map)
 
 
 # ======================================================
-# UPDATE QUOTATION (JSON + IMAGES) — CLOUDINARY
+# UPDATE QUOTATION
 # ======================================================
 @router.patch("/{quotation_id}", response_model=schemas.QuotationResponse)
-def edit_quotation(
+def update_quotation(
     quotation_id: int,
     data: str = Form(...),
     images: List[UploadFile] | None = File(None),
     db: Session = Depends(get_db)
 ):
-    try:
-        payload_dict = json.loads(data)
-        payload = schemas.QuotationUpdate(**payload_dict)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Invalid update data: {e}")
-
+    payload = schemas.QuotationUpdate(**json.loads(data))
     image_map: Dict[int, str] = {}
 
     if images:
@@ -87,27 +64,39 @@ def edit_quotation(
                 image.file,
                 folder="quotation/items"
             )
-            image_map[index] = result["secure_url"]   # ✅ FULL URL
+            image_map[index] = result["secure_url"]
 
-    if payload.items:
-        for item in payload.items:
-            if not item.item_id and not item.item_name:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Each item must have either item_id or item_name"
-                )
-
-            if item.total is None:
-                item.total = item.qty * item.price
-
-    quotation = crud.update_quotation(
-        db=db,
-        quotation_id=quotation_id,
-        data=payload,
-        image_map=image_map
-    )
-
+    quotation = crud.update_quotation(db, quotation_id, payload, image_map)
     if not quotation:
         raise HTTPException(status_code=404, detail="Quotation not found")
 
     return quotation
+
+
+# ======================================================
+# GET ALL QUOTATIONS ✅ (FIXES LIST)
+# ======================================================
+@router.get("/", response_model=List[schemas.QuotationResponse])
+def get_quotations(db: Session = Depends(get_db)):
+    return crud.get_quotations(db)
+
+
+# ======================================================
+# GET QUOTATION BY ID ✅ (FIXES VIEW)
+# ======================================================
+@router.get("/{quotation_id}", response_model=schemas.QuotationResponse)
+def get_quotation(quotation_id: int, db: Session = Depends(get_db)):
+    quotation = crud.get_quotation_by_id(db, quotation_id)
+    if not quotation:
+        raise HTTPException(status_code=404, detail="Quotation not found")
+    return quotation
+
+
+# ======================================================
+# DELETE QUOTATION ✅ (FIXES DELETE)
+# ======================================================
+@router.delete("/{quotation_id}")
+def delete_quotation(quotation_id: int, db: Session = Depends(get_db)):
+    if not crud.delete_quotation(db, quotation_id):
+        raise HTTPException(status_code=404, detail="Quotation not found")
+    return {"message": "Quotation deleted"}
