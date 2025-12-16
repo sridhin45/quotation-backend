@@ -12,8 +12,7 @@ from backend.database import get_db
 from backend import crud, schemas
 
 import cloudinary.uploader
-from backend.cloudinary_config import cloudinary
-
+import backend.cloudinary_config  # ✅ loads config
 
 router = APIRouter(
     prefix="/items",
@@ -35,7 +34,7 @@ def create_item(
     if image:
         result = cloudinary.uploader.upload(
             image.file,
-            folder="quotation_items"
+            folder="quotation/items"
         )
         image_url = result["secure_url"]
 
@@ -57,10 +56,7 @@ def get_items(db: Session = Depends(get_db)):
 # GET SINGLE ITEM
 # =========================
 @router.get("/{item_id}", response_model=schemas.Item)
-def get_item(
-    item_id: int,
-    db: Session = Depends(get_db)
-):
+def get_item(item_id: int, db: Session = Depends(get_db)):
     item = crud.get_item_by_id(db, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -82,7 +78,7 @@ def update_item(
     if image:
         result = cloudinary.uploader.upload(
             image.file,
-            folder="quotation_items"
+            folder="quotation/items"
         )
         image_url = result["secure_url"]
 
@@ -105,10 +101,7 @@ def update_item(
 # DELETE ITEM
 # =========================
 @router.delete("/{item_id}")
-def delete_item(
-    item_id: int,
-    db: Session = Depends(get_db)
-):
+def delete_item(item_id: int, db: Session = Depends(get_db)):
     try:
         result = crud.delete_item(db, item_id)
         if not result:
