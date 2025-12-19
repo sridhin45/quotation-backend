@@ -7,16 +7,17 @@ from backend.routers import items, quotations
 app = FastAPI(title="Quotation API")
 
 # =========================
-# CORS (ANGULAR + RENDER)
+# CORS (ONLY ONCE - CLEAN)
 # =========================
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:4200",
         "http://127.0.0.1:4200",
-        "https://quotation-frontend.onrender.com"
+        "https://quotation-frontend.onrender.com",
+        "https://quotation-backend-3.onrender.com"
     ],
-    allow_credentials=False,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
