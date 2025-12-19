@@ -16,6 +16,7 @@ class ItemMaster(Base):
     unit_price = Column(Float, nullable=False)
     image = Column(String, nullable=True)
 
+    # ❌ NO CASCADE HERE
     quotation_items = relationship(
         "QuotationItem",
         back_populates="item"
@@ -36,7 +37,7 @@ class Quotation(Base):
     tax = Column(Float, default=0)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # ✅ CRITICAL FIX
+    # ✅ DELETE QUOTATION → DELETE ITEMS
     items = relationship(
         "QuotationItem",
         back_populates="quotation",
@@ -53,13 +54,14 @@ class QuotationItem(Base):
 
     id = Column(Integer, primary_key=True, index=True)
 
-    # ✅ CRITICAL FIX
+    # ✅ CASCADE ONLY FROM QUOTATION
     quotation_id = Column(
         Integer,
         ForeignKey("quotations.id", ondelete="CASCADE"),
         nullable=False
     )
 
+    # ❌ DO NOT CASCADE FROM ITEM
     item_id = Column(
         Integer,
         ForeignKey("item_master.id"),

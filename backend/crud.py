@@ -199,9 +199,16 @@ def delete_quotation(db: Session, quotation_id: int):
     if not quotation:
         return None
 
+    # Delete quotation items first
+    db.query(models.QuotationItem).filter(
+        models.QuotationItem.quotation_id == quotation_id
+    ).delete()
+
+    # Now delete quotation
     db.delete(quotation)
     db.commit()
     return True
+
 # =========================
 # DELETE ITEM
 # =========================
