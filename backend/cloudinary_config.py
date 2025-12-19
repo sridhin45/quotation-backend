@@ -1,8 +1,8 @@
 import cloudinary
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+# 🚫 Don't use dotenv in Render.
+# Render already injects environment variables.
 
 cloudinary.config(
     cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
