@@ -10,9 +10,10 @@ from sqlalchemy.orm import Session
 
 from backend.database import get_db
 from backend import crud, schemas
+from backend.auth import get_current_user   # ✅ PROTECTION
 
 import cloudinary.uploader
-import backend.cloudinary_config  # loads Cloudinary config
+import backend.cloudinary_config
 
 
 router = APIRouter(
@@ -22,14 +23,15 @@ router = APIRouter(
 
 
 # =========================
-# CREATE ITEM (CLOUDINARY)
+# CREATE ITEM (PROTECTED)
 # =========================
 @router.post("/", response_model=schemas.Item)
 def create_item(
     name: str = Form(...),
     unit_price: float = Form(...),
     image: UploadFile | None = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: str = Depends(get_current_user)     # ✅ TOKEN REQUIRED
 ):
     image_url = None
 
@@ -55,18 +57,25 @@ def create_item(
 
 
 # =========================
-# GET ALL ITEMS
+# GET ALL ITEMS (PROTECTED)
 # =========================
 @router.get("/", response_model=list[schemas.Item])
-def get_items(db: Session = Depends(get_db)):
+def get_items(
+    db: Session = Depends(get_db),
+    user: str = Depends(get_current_user)      # ✅ TOKEN REQUIRED
+):
     return crud.get_items(db)
 
 
 # =========================
-# GET SINGLE ITEM
+# GET SINGLE ITEM (PROTECTED)
 # =========================
 @router.get("/{item_id}", response_model=schemas.Item)
-def get_item(item_id: int, db: Session = Depends(get_db)):
+def get_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    user: str = Depends(get_current_user)      # ✅ TOKEN REQUIRED
+):
     item = crud.get_item_by_id(db, item_id)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
@@ -74,7 +83,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
 
 
 # =========================
-# UPDATE ITEM (CLOUDINARY)
+# UPDATE ITEM (PROTECTED)
 # =========================
 @router.patch("/{item_id}", response_model=schemas.Item)
 def update_item(
@@ -82,7 +91,8 @@ def update_item(
     name: str | None = Form(None),
     unit_price: float | None = Form(None),
     image: UploadFile | None = File(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: str = Depends(get_current_user)      # ✅ TOKEN REQUIRED
 ):
     image_url = None
 
@@ -116,10 +126,14 @@ def update_item(
 
 
 # =========================
-# DELETE ITEM
+# DELETE ITEM (PROTECTED)
 # =========================
 @router.delete("/{item_id}")
-def delete_item(item_id: int, db: Session = Depends(get_db)):
+def delete_item(
+    item_id: int,
+    db: Session = Depends(get_db),
+    user: str = Depends(get_current_user)      # ✅ TOKEN REQUIRED
+):
     try:
         result = crud.delete_item(db, item_id)
         if not result:

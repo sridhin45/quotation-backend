@@ -4,11 +4,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.database import Base, engine
 from backend.routers import items, quotations
 from backend import auth
+
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
 
 app = FastAPI(title="Quotation API")
 
@@ -35,6 +34,7 @@ Base.metadata.create_all(bind=engine)
 # =========================
 # ROUTERS
 # =========================
+app.include_router(auth.router)        # 🔥 include auth first (important)
 app.include_router(items.router)
 app.include_router(quotations.router)
 
@@ -48,5 +48,3 @@ def root():
 @app.get("/cors-test")
 def cors_test():
     return {"cors": "working"}
-
-app.include_router(auth.router)
