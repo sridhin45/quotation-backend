@@ -95,3 +95,35 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 @router.get("/secure")
 def secure_route(current_user: str = Depends(get_current_user)):
     return {"message": "You are authorized", "user": current_user}
+
+# =========================
+# GET ALL USERS  (Protected)
+# =========================
+@router.get("/users", response_model=list[schemas.UserResponse])
+def get_users(
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+    users = db.query(models.User).all()
+    return users
+
+
+# =========================
+# DELETE USER (Protected)
+# =========================
+@router.delete("/users/{user_id}")
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: str = Depends(get_current_user)
+):
+
+    user = db.query(models.User).filter(models.User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    db.delete(user)
+    db.commit()
+
+    return {"message": "User deleted successfully"}
