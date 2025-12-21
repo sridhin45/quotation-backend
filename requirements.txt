@@ -4,6 +4,7 @@ sqlalchemy
 alembic
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt==4.1.2
 python-multipart
 cloudinary
 psycopg2-binary
