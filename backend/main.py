@@ -20,6 +20,7 @@ app.add_middleware(
         "http://localhost:4200",
         "http://127.0.0.1:4200",
         "https://quotation-frontend-g74l.onrender.com",
+        "https://quotation-frontend-1.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
