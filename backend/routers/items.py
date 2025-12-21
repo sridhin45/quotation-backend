@@ -12,12 +12,14 @@ from backend.database import get_db
 from backend import crud, schemas
 
 import cloudinary.uploader
-import backend.cloudinary_config  # ✅ loads Cloudinary config
+import backend.cloudinary_config  # loads Cloudinary config
+
 
 router = APIRouter(
     prefix="/items",
     tags=["Items"]
 )
+
 
 # =========================
 # CREATE ITEM (CLOUDINARY)
@@ -51,12 +53,14 @@ def create_item(
         image=image_url
     )
 
+
 # =========================
 # GET ALL ITEMS
 # =========================
 @router.get("/", response_model=list[schemas.Item])
 def get_items(db: Session = Depends(get_db)):
     return crud.get_items(db)
+
 
 # =========================
 # GET SINGLE ITEM
@@ -67,6 +71,7 @@ def get_item(item_id: int, db: Session = Depends(get_db)):
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
+
 
 # =========================
 # UPDATE ITEM (CLOUDINARY)
@@ -109,6 +114,7 @@ def update_item(
 
     return item
 
+
 # =========================
 # DELETE ITEM
 # =========================
@@ -118,6 +124,8 @@ def delete_item(item_id: int, db: Session = Depends(get_db)):
         result = crud.delete_item(db, item_id)
         if not result:
             raise HTTPException(status_code=404, detail="Item not found")
+
         return {"message": "Item deleted successfully"}
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

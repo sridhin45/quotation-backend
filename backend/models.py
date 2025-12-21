@@ -3,6 +3,8 @@ from sqlalchemy.orm import relationship
 from datetime import datetime
 
 from backend.database import Base
+from passlib.context import CryptContext
+
 
 
 # =========================
@@ -74,3 +76,11 @@ class QuotationItem(Base):
 
     quotation = relationship("Quotation", back_populates="items")
     item = relationship("ItemMaster", back_populates="quotation_items")
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+
