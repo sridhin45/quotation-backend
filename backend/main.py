@@ -51,3 +51,11 @@ def root():
 @app.get("/cors-test")
 def cors_test():
     return {"cors": "working"}
+from fastapi import FastAPI
+from backend.database import engine, Base
+
+app = FastAPI()
+
+@app.on_event("startup")
+def startup():
+    Base.metadata.create_all(bind=engine)
