@@ -4,22 +4,21 @@ import os
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-# ✅ Fallback for local development
+# Local fallback only
 if not DATABASE_URL:
     DATABASE_URL = "sqlite:///./quotation.db"
 
-# SQLite needs special connect args
-connect_args = {}
+engine_kwargs = {
+    "pool_pre_ping": True
+}
+
+# SQLite specific config
 if DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
+    engine_kwargs["connect_args"] = {"check_same_thread": False}
 
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    connect_args=connect_args
-)
+engine = create_engine(DATABASE_URL, **engine_kwargs)
 
-# ✅ ENABLE SQLite foreign keys (CRITICAL)
+# Enable SQLite foreign keys
 if DATABASE_URL.startswith("sqlite"):
     @event.listens_for(engine, "connect")
     def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
