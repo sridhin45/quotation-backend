@@ -24,27 +24,20 @@ class Item(ItemBase):
     id: int
     image: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 # =========================
 # QUOTATION ITEM (CREATE / EDIT)
 # =========================
 class QuotationItemAuto(BaseModel):
-    # Existing item (dropdown)
     item_id: Optional[int] = None
-
-    # New item (typed)
     item_name: Optional[str] = None
-
     qty: int
     price: float
-
-    # ✅ OPTIONAL (backend will calculate if missing)
     total: Optional[float] = None
-
-    # Used ONLY during edit
     replace_image: Optional[bool] = False
 
 
@@ -60,7 +53,7 @@ class QuotationCreate(BaseModel):
 
 
 # =========================
-# QUOTATION UPDATE (EDIT)
+# QUOTATION UPDATE
 # =========================
 class QuotationUpdate(BaseModel):
     customer_name: Optional[str] = None
@@ -80,8 +73,9 @@ class QuotationItemResponse(BaseModel):
     total: float
     item: Item
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class QuotationResponse(BaseModel):
@@ -94,8 +88,9 @@ class QuotationResponse(BaseModel):
     created_at: datetime
     items: List[QuotationItemResponse]
 
-    class Config:
-        from_attributes = True
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class UserCreate(BaseModel):
@@ -107,5 +102,6 @@ class UserResponse(BaseModel):
     id: int
     username: str
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }

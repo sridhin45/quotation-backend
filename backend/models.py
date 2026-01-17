@@ -4,8 +4,8 @@ from datetime import datetime
 
 from backend.database import Base
 from passlib.context import CryptContext
-
-
+from pydantic import BaseModel
+from typing import List, Optional
 
 # =========================
 # ITEM MASTER
@@ -84,3 +84,64 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
 
+
+
+
+
+# =========================
+# ITEM SCHEMA
+# =========================
+class ItemSchema(BaseModel):
+    id: int
+    name: str
+    unit_price: float
+    image: Optional[str]
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+# =========================
+# QUOTATION ITEM SCHEMA
+# =========================
+class QuotationItemSchema(BaseModel):
+    id: int
+    qty: int
+    price: float
+    total: float
+    item: ItemSchema
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+# =========================
+# QUOTATION SCHEMA
+# =========================
+class QuotationSchema(BaseModel):
+    id: int
+    quote_no: str
+    customer_name: str
+    customer_phone: Optional[str]
+    salesman_name: str
+    tax: float
+    created_at: datetime
+    items: List[QuotationItemSchema]
+
+    model_config = {
+        "from_attributes": True
+    }
+
+
+# =========================
+# USER SCHEMA
+# =========================
+class UserSchema(BaseModel):
+    id: int
+    username: str
+
+    model_config = {
+        "from_attributes": True
+    }
