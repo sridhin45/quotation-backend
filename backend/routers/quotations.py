@@ -31,26 +31,45 @@ def create_quotation(
     db: Session = Depends(get_db),
     user: str = Depends(get_current_user)
 ):
-    payload = schemas.QuotationCreate(**json.loads(data))
+    try:
+        payload = schemas.QuotationCreate(**json.loads(data))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Invalid data JSON: {e}")
 
     image_map: Dict[int, str] = {}
     image_index = 0
 
+    # Upload images safely
     if images:
         for idx, item in enumerate(payload.items):
             if not item.item_id:
-                result = cloudinary.uploader.upload(
-                    images[image_index].file,
-                    folder="quotation/items"
-                )
-                image_map[idx] = result["secure_url"]
-                image_index += 1
+                if image_index >= len(images):
+                    break  # prevent IndexError
 
+                try:
+                    result = cloudinary.uploader.upload(
+                        images[image_index].file,
+                        folder="quotation/items",
+                        timeout=30
+                    )
+                    image_map[idx] = result["secure_url"]
+                    image_index += 1
+                except Exception as e:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Image upload failed: {e}"
+                    )
+
+    # Calculate totals
     for item in payload.items:
         if item.total is None:
             item.total = item.qty * item.price
 
-    return crud.create_quotation(db, payload, image_map)
+    try:
+        return crud.create_quotation(db, payload, image_map)
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # =========================
